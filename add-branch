@@ -1,7 +1,14 @@
 int   a =0
 <<<<<<< HEAD
 add  master   checkout 
+<<<<<<< HEAD
 =======
 
 in master   
 we  add  some  code  by  master
+=======
+======
+
+in   feature2  
+ we  add  some  code 
+>>>>>>> feature2
