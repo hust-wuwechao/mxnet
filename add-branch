@@ -10,7 +10,14 @@ we  add  some  code  by  master
 ======
 
 in   feature2  
+<<<<<<< HEAD
  we  add  some  code 
 >>>>>>> feature2
 
 solve   a  bug 
+=======
+ we  add  some  code
+
+
+do  some  work   in  going  
+>>>>>>> feature-aaa-function
