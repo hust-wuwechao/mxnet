@@ -1,4 +1,7 @@
 int   a =0
 <<<<<<< HEAD
 add  master   checkout 
-=======
+======
+
+in   feature2  
+ we  add  some  code 
