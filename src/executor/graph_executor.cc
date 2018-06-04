@@ -42,6 +42,7 @@ GraphExecutor::GraphExecutor() {
 }
 
 GraphExecutor::~GraphExecutor() {
+  LOG(INFO) << "进入 ~GraphExecutor" ;
   for (auto& n : op_nodes_) {
     if (n.cached_opr != nullptr) {
       Engine::Get()->DeleteOperator(n.cached_opr);
@@ -56,7 +57,9 @@ GraphExecutor::~GraphExecutor() {
 }
 
 inline NDArray InitZeros(const NDArrayStorageType stype, const TShape &shape,
-                                const Context &ctx, const int dtype) {
+                                const Context &ctx, const int dtype) 
+{
+  LOG(INFO) << "进入InitZeros" ;
   // NDArray with default storage
   if (stype == kDefaultStorage) {
     NDArray ret(shape, ctx, false, dtype);
@@ -81,11 +84,12 @@ inline void EmplaceBackZeros(const NDArrayStorageType stype, const TShape &shape
 }
 void GraphExecutor::Forward(bool is_train) 
 {
-  
+  LOG(INFO) << "进入GraphExecutor::Forward" ;
   RunOps(is_train, 0, num_forward_nodes_);
 }
 
 void GraphExecutor::PartialForward(bool is_train, int step, int *step_left) {
+  LOG(INFO) << "GraphExecutor::PartialForward" ;
   size_t sstep = static_cast<size_t>(step);
   if (sstep >= num_forward_nodes_) {
     *step_left = 0; return;
@@ -95,6 +99,7 @@ void GraphExecutor::PartialForward(bool is_train, int step, int *step_left) {
 }
 
 void GraphExecutor::Backward(const std::vector<NDArray>& head_grads, bool is_train) {
+  LOG(INFO) << "GraphExecutor::Backward" ;
   const auto& idx = graph_.indexed_graph();
   if (num_forward_inputs_ != idx.input_nodes().size()) {
     for (size_t i = 0; i < head_grad_array_.size(); ++i) {
@@ -152,6 +157,7 @@ static nnvm::NodeEntry AttrHint(nnvm::NodeEntry src, nnvm::NodeEntry like) {
 }
 
 nnvm::NodeEntry AggregateGradient(std::vector<nnvm::NodeEntry>&& v) {
+  LOG(INFO) << "进入nnvm::NodeEntry AggregateGradient" ;
   using nnvm::Op;
   static size_t inplace_sum_cap = dmlc::GetEnv("MXNET_EXEC_INPLACE_GRAD_SUM_CAP", 8);
   static const Op* ewise_plus_op = Op::Get("_grad_add");
@@ -250,10 +256,9 @@ inline ValueType get_node_attr(
  * This is triggered by both simple_bind and bind flows.
  */
 nnvm::Graph GraphExecutor::InitFullGraph(nnvm::Symbol symbol,
- 
-  
-                                         const std::vector<OpReqType>& grad_req_types) {
- LOG(INFO) << "\t进入初始化全部图片\t"; 
+                                         const std::vector<OpReqType>& grad_req_types) 
+                                         {
+  LOG(INFO) << "进入nnvm::Graph GraphExecutor::InitFullGraph" ;                                         
   using nnvm::NodePtr;
   using nnvm::NodeEntry;
   // initial information
@@ -267,14 +272,16 @@ nnvm::Graph GraphExecutor::InitFullGraph(nnvm::Symbol symbol,
     if (req != kNullOp) need_grad = true;
   }
   if (!need_grad) return g;
-  for (size_t i = 0; i < g.outputs.size(); ++i) {
+  for (size_t i = 0; i < g.outputs.size(); ++i) 
+  {
     NodeEntry ngrad{nnvm::Node::Create(), 0, 0};
     head_grad_entry_.emplace_back(AttrHint(ngrad, g.outputs[i]));
     head_grad_map_[ngrad.node.get()] = i;
   }
   std::vector<NodePtr> args = symbol.ListInputs(nnvm::Symbol::kReadOnlyArgs);
   std::vector<NodeEntry> xs;
-  for (size_t i = 0; i < grad_req_types.size(); ++i) {
+  for (size_t i = 0; i < grad_req_types.size(); ++i) 
+  {
     if (grad_req_types[i] != kNullOp) {
       xs.emplace_back(NodeEntry{args[i], 0, 0});
     }
@@ -325,8 +332,7 @@ static Graph AssignContext(Graph g,
                     const std::vector<OpReqType>& grad_req_types,
                     size_t num_forward_inputs,
                     size_t num_forward_outputs) {
-
-  LOG(INFO) << "\jenter  分配上下文\t";
+  LOG(INFO) << "进入Graph AssignContext" ;                     
   const auto& idx = g.indexed_graph();
   const auto& mutable_nodes = idx.mutable_input_nodes();
   // default use default context.
@@ -418,7 +424,6 @@ static Graph AssignContext(Graph g,
   for (size_t i = 0; i < assigned_device.size(); ++i) {
     if (assigned_device[i] == -1) {
       vcontext.push_back(default_ctx);
-
     } else {
       vcontext.push_back(ctx_list[assigned_device[i]]);
     }
@@ -528,6 +533,7 @@ void GraphExecutor::Init(nnvm::Symbol symbol,
                          Executor* shared_exec,
                          const nnvm::NodeEntryMap<NDArray>& feed_dict) {
   // create in_arg_ctxes, arg_grad_ctxes, aux_state_ctxes
+   LOG(INFO) << "进入GraphExecutor::Init" ;
   auto get_ctx1 = [](const NDArray& nd) { return nd.ctx(); };
   auto get_ctx2 = [default_ctx](const NDArray& nd) -> Context {
     if (nd.is_none()) return default_ctx;
@@ -636,6 +642,7 @@ void GraphExecutor::InitArguments(const nnvm::IndexedGraph& idx,
                                   std::vector<NDArray>* aux_state_vec) {
   // initialize in_args, arg_grads, and aux_states
   // populate grad_store_
+  LOG(INFO) << "进入GraphExecutor::InitArguments" ;
   data_entry_.resize(idx.num_node_entries());
   size_t arg_top = 0, aux_top = 0;
   const auto& mutable_nodes = idx.mutable_input_nodes();
@@ -758,6 +765,8 @@ void GraphExecutor::InitArguments(const nnvm::IndexedGraph& idx,
                                   std::vector<NDArray>* in_arg_vec,
                                   std::vector<NDArray>* arg_grad_vec,
                                   std::vector<NDArray>* aux_state_vec) {
+  
+  LOG(INFO) << "进入GraphExecutor::InitArguments" ;
   // initialize in_args, arg_grads, and aux_states and populate grad_store_
   data_entry_.resize(idx.num_node_entries());
   size_t arg_top = 0, aux_top = 0;
@@ -788,7 +797,9 @@ void GraphExecutor::InitArguments(const nnvm::IndexedGraph& idx,
              " be resued for creating auxilliary NDArray of the argument: "
           << arg_name << " for the current executor";
         aux_state_vec->emplace_back(aux_nd);
-      } else {
+      } 
+      else
+      {
         EmplaceBackZeros(inferred_stype, inferred_shape, aux_state_ctxes[aux_top],
                          inferred_dtype, aux_state_vec);
       }  // if (has_shared_exec)
@@ -886,6 +897,7 @@ void GraphExecutor::FinishInitGraph(nnvm::Symbol symbol,
                                     nnvm::Graph g,
                                     Executor* shared_exec,
                                     const nnvm::NodeEntryMap<NDArray>& feed_dict) {
+  LOG(INFO) << "GraphExecutor::FinishInitGraph" ;
   const auto& idx = g.indexed_graph();
   const auto& vstorage_type = g.GetAttr<StorageTypeVector>("storage_type");
 
@@ -920,7 +932,7 @@ void GraphExecutor::FinishInitGraph(nnvm::Symbol symbol,
   }
 
   g = AttachOpExecs(g);
-  g = AttachOpResources(g);
+  AttachOpResources(g);
   graph_ = std::move(g);
 
   if (shared_exec != nullptr) {
@@ -979,6 +991,7 @@ void GraphExecutor::Init(nnvm::Symbol symbol,
                          std::unordered_map<std::string, NDArray>* shared_buffer,
                          Executor* shared_exec,
                          const nnvm::NodeEntryMap<NDArray>& feed_dict) {
+  LOG(INFO) << "GraphExecutor::Init" ;
   nnvm::Graph g = InitGraph(symbol, default_ctx, ctx_map, in_arg_ctxes, arg_grad_ctxes,
                             aux_state_ctxes, grad_req_types);
   // The following code of shape and dtype inferences and argument
@@ -1067,6 +1080,7 @@ Executor* GraphExecutor::Reshape(const bool partial_shaping,
                                  std::vector<NDArray>* in_args,
                                  std::vector<NDArray>* arg_grads,
                                  std::vector<NDArray>* aux_states) {
+  LOG(INFO) << "进入Executor* GraphExecutor::Reshape" ;
   nnvm::Graph g;
   g.outputs = std::vector<nnvm::NodeEntry>(graph_.outputs.begin(),
     graph_.outputs.begin() + num_forward_outputs_);
@@ -1177,6 +1191,7 @@ Graph GraphExecutor::InitGraph(nnvm::Symbol symbol,
                                const std::vector<Context>& aux_state_ctxes,
                                const std::vector<OpReqType>& grad_req_types) {
   // setup gradient
+   LOG(INFO) << "进入Graph GraphExecutor::InitGraph" ;
   nnvm::Graph g = InitFullGraph(symbol, grad_req_types);
 
   // create "device" and "context" attrs for the graph
@@ -1203,6 +1218,7 @@ void GraphExecutor::InitDataEntryMemory(std::vector<NDArray>* shared_pool) {
   using nnvm::DTypeVector;
   using nnvm::ShapeVector;
   using nnvm::StorageVector;
+  LOG(INFO) << "进入GraphExecutor::InitDataEntryMemory" ;
   // get the graph
   const auto& idx = graph_.indexed_graph();
   // get the storage
@@ -1592,6 +1608,7 @@ void GraphExecutor::ExecuteMonCallback(size_t nid) {
 
 void GraphExecutor::RunOps(bool is_train, size_t topo_start, size_t topo_end) {
   // Update context
+  LOG(INFO) << "进入void GraphExecutor::RunOps" ;
   const auto& idx = graph_.indexed_graph();
   for (size_t nid = topo_start; nid < topo_end; ++nid) {
     OpNode& opnode = op_nodes_[nid];
@@ -1719,6 +1736,7 @@ Executor *Executor::SimpleBind(nnvm::Symbol symbol,
                                std::vector<NDArray>* aux_states,
                                std::unordered_map<std::string, NDArray>* shared_buffer,
                                Executor* shared_exec) {
+  LOG(INFO) << "进入Executor *Executor::SimpleBind" ;
   auto exec = new exec::GraphExecutor();
   exec->Init(symbol, default_ctx, group2ctx,
              in_arg_ctxes, arg_grad_ctxes, aux_state_ctxes,
@@ -1737,6 +1755,7 @@ Executor *Executor::Bind(nnvm::Symbol symbol,
                          const std::vector<OpReqType> &grad_req_type,
                          const std::vector<NDArray> &aux_states,
                          Executor* shared_exec) {
+  LOG(INFO) << "进入Executor *Executor::Bind（）" ;                         
   auto exec = new exec::GraphExecutor();
   exec->Init(symbol, default_ctx, group2ctx,
              in_args, arg_grad_store, grad_req_type, aux_states,
